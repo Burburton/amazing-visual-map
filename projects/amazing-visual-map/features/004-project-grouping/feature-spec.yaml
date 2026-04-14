@@ -1,0 +1,32 @@
+# Feature 004 - Project Grouping
+# 
+# Groups artifacts by project, enables project selection and navigation.
+# Part of V2: Core Map Experience.
+
+name: project-grouping
+goal: Group artifacts by project_id, enable project selection and cross-project navigation
+status: planning
+
+acceptance_criteria:
+  - AC1: Group artifacts by project_id
+  - AC2: Provide project list for navigation
+  - AC3: Filter artifacts by selected project
+  - AC4: Show project count in observatory header
+  - AC5: Project selection UI (minimal dropdown or buttons)
+
+map_metaphor:
+  project: World/Territory selection
+  switching_projects: Moving between territories
+
+implementation_notes:
+  - Add project_id to DiscoveredArtifact
+  - Scanner tracks project_id per artifact
+  - Add /api/projects endpoint for project list
+  - Add project filter parameter to existing endpoints
+  - Add project selector UI in observatory header
+
+anti_regression:
+  - NOT: Flat project list without navigation
+  - NOT: All artifacts shown without grouping
+  - YES: Project-level grouping
+  - YES: Territory/world metaphor expression

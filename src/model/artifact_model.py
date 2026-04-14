@@ -18,6 +18,7 @@ class ProjectArtifact:
     summary: str
     source_path: Path
     parse_status: str
+    project_id: str = ""
     date: str | None = None
     status: str | None = None
     feature_id: str | None = None
@@ -26,7 +27,6 @@ class ProjectArtifact:
 
 
 def normalize_artifact(discovered: DiscoveredArtifact) -> ProjectArtifact:
-    """Normalize discovered artifact into unified model."""
     relationships = extract_relationships(discovered)
     
     return ProjectArtifact(
@@ -36,6 +36,7 @@ def normalize_artifact(discovered: DiscoveredArtifact) -> ProjectArtifact:
         summary=discovered.summary[:100] if discovered.summary else "",
         source_path=discovered.file_path,
         parse_status=discovered.parse_status,
+        project_id=discovered.project_id,
         date=discovered.date,
         status=discovered.status,
         feature_id=discovered.feature_id,
@@ -76,10 +77,6 @@ def normalize_artifacts(discovered_list: list[DiscoveredArtifact]) -> list[Proje
 
 
 def calculate_state_summary(artifacts: list[ProjectArtifact]) -> dict[str, int]:
-    """Calculate minimal state summary.
-    
-    Returns counts for active, completed, blocked states.
-    """
     active = 0
     completed = 0
     blocked = 0
@@ -99,3 +96,28 @@ def calculate_state_summary(artifacts: list[ProjectArtifact]) -> dict[str, int]:
         "completed": completed,
         "blocked": blocked,
     }
+
+
+def group_artifacts_by_project(artifacts: list[ProjectArtifact]) -> dict[str, list[ProjectArtifact]]:
+    grouped: dict[str, list[ProjectArtifact]] = {}
+    
+    for artifact in artifacts:
+        project_id = artifact.project_id or "unknown"
+        if project_id not in grouped:
+            grouped[project_id] = []
+        grouped[project_id].append(artifact)
+    
+    return grouped
+
+
+def get_project_summary(artifacts: list[ProjectArtifact]) -> list[dict[str, Any]]:
+    grouped = group_artifacts_by_project(artifacts)
+    
+    summary = []
+    for project_id, project_artifacts in grouped.items():
+        summary.append({
+            "project_id": project_id,
+            "count": len(project_artifacts),
+        })
+    
+    return sorted(summary, key=lambda x: x["project_id"])

@@ -10,7 +10,11 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from src.scanner.repo_scanner import scan_repo
-from src.model.artifact_model import normalize_artifacts, calculate_state_summary
+from src.model.artifact_model import (
+    normalize_artifacts,
+    calculate_state_summary,
+    get_project_summary,
+)
 
 
 app = FastAPI(title="Amazing Visual Map Observatory")
@@ -18,7 +22,6 @@ app = FastAPI(title="Amazing Visual Map Observatory")
 
 @app.get("/api/project/{project_id}")
 async def get_project_state(project_id: str, repo_path: str = "."):
-    """Get project state for observatory display."""
     repo = Path(repo_path)
     
     if not repo.exists():
@@ -69,8 +72,21 @@ async def get_project_state(project_id: str, repo_path: str = "."):
     }
 
 
+@app.get("/api/projects")
+async def get_projects(repo_path: str = "."):
+    repo = Path(repo_path)
+    
+    if not repo.exists():
+        raise HTTPException(status_code=404, detail="Repository not found")
+    
+    discovered = scan_repo(repo)
+    artifacts = normalize_artifacts(discovered)
+    summary = get_project_summary(artifacts)
+    
+    return summary
+
+
 def derive_next_action(summary: dict, blocked: list) -> str:
-    """Derive recommended next action from state."""
     if summary["blocked"] > 0:
         return f"Resolve {summary['blocked']} blocked items before continuing"
     
@@ -85,7 +101,6 @@ def derive_next_action(summary: dict, blocked: list) -> str:
 
 @app.get("/", response_class=HTMLResponse)
 async def observatory_home():
-    """Serve observatory home page."""
     return HTMLResponse(content=get_observatory_html())
 
 
@@ -162,6 +177,42 @@ def get_observatory_html() -> str:
         .pulse-active { color: var(--accent-cyan); }
         .pulse-completed { color: var(--accent-green); }
         .pulse-blocked { color: var(--accent-red); }
+        
+        .project-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .project-btn {
+            background: var(--bg-region);
+            border: 1px solid #222233;
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+        
+        .project-btn:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+        
+        .project-btn.active {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            background: rgba(0, 212, 255, 0.1);
+        }
+        
+        .project-count {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
         
         .section {
             margin-top: 40px;
@@ -304,6 +355,8 @@ def get_observatory_html() -> str:
     <div class="observatory">
         <div class="header">
             <h1>Project Observatory</h1>
+            <div class="project-selector" id="project-selector"></div>
+            <div class="project-count" id="project-count">Loading projects...</div>
             <div class="pulse">
                 <div class="pulse-item">
                     <div class="pulse-value pulse-active" id="active-count">-</div>
@@ -342,10 +395,45 @@ def get_observatory_html() -> str:
     </div>
     
     <script>
-        const projectId = 'amazing-async-dev';
         const repoPath = 'G:/Workspace/amazing-async-dev';
+        let currentProjectId = null;
+        let projects = [];
         
-        async function loadObservatory() {
+        async function loadProjects() {
+            try {
+                const res = await fetch(`/api/projects?repo_path=${encodeURIComponent(repoPath)}`);
+                projects = await res.json();
+                renderProjectSelector(projects);
+                if (projects.length > 0) {
+                    selectProject(projects[0].project_id);
+                }
+            } catch (e) {
+                document.getElementById('project-count').textContent = 'Failed to load projects';
+            }
+        }
+        
+        function renderProjectSelector(projects) {
+            const selector = document.getElementById('project-selector');
+            selector.innerHTML = projects.map(p => `
+                <button class="project-btn" data-project="${p.project_id}" onclick="selectProject('${p.project_id}')">
+                    ${p.project_id} (${p.count})
+                </button>
+            `).join('');
+            
+            document.getElementById('project-count').textContent = `${projects.length} projects discovered`;
+        }
+        
+        function selectProject(projectId) {
+            currentProjectId = projectId;
+            
+            document.querySelectorAll('.project-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.project === projectId);
+            });
+            
+            loadProjectState(projectId);
+        }
+        
+        async function loadProjectState(projectId) {
             try {
                 const res = await fetch(`/api/project/${projectId}?repo_path=${encodeURIComponent(repoPath)}`);
                 const data = await res.json();
@@ -398,7 +486,7 @@ def get_observatory_html() -> str:
             document.getElementById('regions').innerHTML = '<div class="empty-state"><h2>No Project Data</h2><p>Point to an async-dev repository to see project state</p></div>';
         }
         
-        loadObservatory();
+        loadProjects();
     </script>
 </body>
 </html>

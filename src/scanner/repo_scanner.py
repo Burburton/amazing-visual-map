@@ -16,6 +16,7 @@ class DiscoveredArtifact:
     artifact_id: str
     file_path: Path
     parse_status: str
+    project_id: str = ""
     title: str = ""
     summary: str = ""
     date: str | None = None
@@ -56,16 +57,11 @@ def detect_project_structure(repo_path: Path) -> list[Path]:
 
 
 def scan_project(project_path: Path) -> list[DiscoveredArtifact]:
-    """Scan a single async-dev project and extract all artifacts.
-    
-    AC2-AC6: Extract feature specs, exec packs, exec results, reviews, runstate
-    AC7: Handle missing artifacts gracefully
-    AC8: Output structured artifact list
-    """
     artifacts = []
+    project_id = project_path.name
     
     for artifact_type, pattern in ARTIFACT_PATTERNS.items():
-        discovered = discover_artifacts_by_type(project_path, artifact_type, pattern)
+        discovered = discover_artifacts_by_type(project_path, artifact_type, pattern, project_id)
         artifacts.extend(discovered)
     
     return artifacts
@@ -74,7 +70,8 @@ def scan_project(project_path: Path) -> list[DiscoveredArtifact]:
 def discover_artifacts_by_type(
     project_path: Path, 
     artifact_type: str, 
-    pattern: str
+    pattern: str,
+    project_id: str = "",
 ) -> list[DiscoveredArtifact]:
     artifacts = []
     regex = re.compile(pattern)
@@ -83,17 +80,13 @@ def discover_artifacts_by_type(
         if file_path.is_file():
             relative = str(file_path.relative_to(project_path)).replace("\\", "/")
             if regex.match(relative):
-                artifact = parse_artifact(file_path, artifact_type)
+                artifact = parse_artifact(file_path, artifact_type, project_id)
                 artifacts.append(artifact)
     
     return artifacts
 
 
-def parse_artifact(file_path: Path, artifact_type: str) -> DiscoveredArtifact:
-    """Parse artifact file and extract metadata.
-    
-    AC7: Handle parse failures gracefully (partial/failed status)
-    """
+def parse_artifact(file_path: Path, artifact_type: str, project_id: str = "") -> DiscoveredArtifact:
     artifact_id = extract_artifact_id(file_path, artifact_type)
     
     try:
@@ -118,6 +111,7 @@ def parse_artifact(file_path: Path, artifact_type: str) -> DiscoveredArtifact:
         artifact_id=artifact_id,
         file_path=file_path,
         parse_status=parse_status,
+        project_id=project_id,
         title=content.get("name", "") or content.get("goal", "") or artifact_id,
         summary=content.get("description", "") or content.get("today_goal", "") or "",
         date=content.get("date") or extract_date_from_exec_id(artifact_id),
