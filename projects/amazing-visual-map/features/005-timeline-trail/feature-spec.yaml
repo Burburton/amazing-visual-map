@@ -1,0 +1,32 @@
+name: timeline-trail
+goal: Visualize project history as a movement trail with sequence, not flat list
+status: planning
+
+acceptance_criteria:
+  - AC1: Display timeline as vertical/horizontal trail
+  - AC2: Each event as waypoint/marker on trail
+  - AC3: Trail shows sequence (not random ordering)
+  - AC4: Highlight recent movement (last 7 days)
+  - AC5: Click waypoint shows details
+  - AC6: Dark theme integration
+  - AC7: NO table/list format
+  - AC8: Load within 2 seconds
+
+map_metaphor:
+  timeline: Trail/Route through project history
+  events: Waypoints/Milestones on trail
+  recent_activity: Movement trail segment (highlighted)
+
+anti_regression:
+  - NOT: Flat chronological list
+  - NOT: Table of events
+  - YES: Visual trail with markers
+  - YES: Movement/sequence metaphor
+
+implementation_notes:
+  - Add /api/timeline/{project_id} endpoint
+  - Return events sorted by date with trail metadata
+  - CSS-based vertical trail (not canvas)
+  - Waypoints connected visually (line/path)
+  - Recent events highlighted with accent color
+  - Click reveals artifact details panel

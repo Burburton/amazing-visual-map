@@ -86,6 +86,56 @@ async def get_projects(repo_path: str = "."):
     return summary
 
 
+@app.get("/api/timeline/{project_id}")
+async def get_timeline(project_id: str, repo_path: str = "."):
+    repo = Path(repo_path)
+    
+    if not repo.exists():
+        raise HTTPException(status_code=404, detail="Repository not found")
+    
+    discovered = scan_repo(repo, project_id=project_id)
+    artifacts = normalize_artifacts(discovered)
+    
+    events = build_timeline_events(artifacts)
+    
+    return {
+        "project_id": project_id,
+        "events": events,
+    }
+
+
+def build_timeline_events(artifacts) -> list[dict]:
+    from datetime import datetime, timedelta, date
+    
+    now = datetime.now()
+    recent_threshold = now - timedelta(days=7)
+    
+    dated_artifacts = [a for a in artifacts if a.date]
+    sorted_artifacts = sorted(dated_artifacts, key=lambda x: str(x.date or ""), reverse=True)
+    
+    events = []
+    for artifact in sorted_artifacts:
+        is_recent = False
+        if artifact.date:
+            try:
+                date_str = str(artifact.date) if isinstance(artifact.date, date) else artifact.date
+                artifact_date = datetime.strptime(date_str, "%Y-%m-%d")
+                is_recent = artifact_date >= recent_threshold
+            except ValueError:
+                pass
+        
+        events.append({
+            "id": artifact.artifact_id,
+            "type": artifact.artifact_type,
+            "date": str(artifact.date) if artifact.date else None,
+            "title": artifact.title,
+            "status": artifact.status,
+            "is_recent": is_recent,
+        })
+    
+    return events
+
+
 def derive_next_action(summary: dict, blocked: list) -> str:
     if summary["blocked"] > 0:
         return f"Resolve {summary['blocked']} blocked items before continuing"
@@ -349,6 +399,74 @@ def get_observatory_html() -> str:
             color: var(--text-primary);
             margin-bottom: 20px;
         }
+        
+        .details-panel {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 400px;
+            height: 100vh;
+            background: var(--bg-dark);
+            border-left: 1px solid #222233;
+            transition: right 0.3s ease;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .details-panel.open {
+            right: 0;
+        }
+        
+        .details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .details-title {
+            font-size: 1.2rem;
+            color: var(--accent-cyan);
+        }
+        
+        .details-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .details-content {
+            color: var(--text-primary);
+        }
+        
+        .details-field {
+            margin-bottom: 15px;
+        }
+        
+        .details-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        .details-value {
+            font-size: 1rem;
+            margin-top: 5px;
+        }
+        
+        .waypoint-clickable {
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .waypoint-clickable:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+        
+        .waypoint-recent {
+            border: 1px solid var(--accent-cyan);
+        }
     </style>
 </head>
 <body>
@@ -392,6 +510,14 @@ def get_observatory_html() -> str:
             <div class="path-hint-text" id="next-action">-</div>
             <div class="path-hint-label">Recommended Path</div>
         </div>
+    </div>
+    
+    <div class="details-panel" id="details-panel">
+        <div class="details-header">
+            <div class="details-title" id="details-title">Artifact Details</div>
+            <button class="details-close" onclick="closeDetails()">x</button>
+        </div>
+        <div class="details-content" id="details-content"></div>
     </div>
     
     <script>
@@ -458,7 +584,7 @@ def get_observatory_html() -> str:
             
             const trailEl = document.getElementById('trail');
             trailEl.innerHTML = data.recent_movement.map(r => `
-                <div class="trail-item">
+                <div class="trail-item waypoint-clickable" onclick="showDetails('${r.id}', '${r.type}', '${r.date || ''}', '${r.title || ''}')">
                     <div class="trail-marker"></div>
                     <div class="trail-content">
                         <div class="trail-title">${r.title || r.id}</div>
@@ -484,6 +610,35 @@ def get_observatory_html() -> str:
         
         function renderEmpty() {
             document.getElementById('regions').innerHTML = '<div class="empty-state"><h2>No Project Data</h2><p>Point to an async-dev repository to see project state</p></div>';
+        }
+        
+        function showDetails(id, type, date, title) {
+            const panel = document.getElementById('details-panel');
+            const titleEl = document.getElementById('details-title');
+            const contentEl = document.getElementById('details-content');
+            
+            titleEl.textContent = title || id;
+            contentEl.innerHTML = `
+                <div class="details-field">
+                    <div class="details-label">ID</div>
+                    <div class="details-value">${id}</div>
+                </div>
+                <div class="details-field">
+                    <div class="details-label">Type</div>
+                    <div class="details-value">${type}</div>
+                </div>
+                <div class="details-field">
+                    <div class="details-label">Date</div>
+                    <div class="details-value">${date || 'Unknown'}</div>
+                </div>
+            `;
+            
+            panel.classList.add('open');
+        }
+        
+        function closeDetails() {
+            const panel = document.getElementById('details-panel');
+            panel.classList.remove('open');
         }
         
         loadProjects();
