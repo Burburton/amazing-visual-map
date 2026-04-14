@@ -1,0 +1,69 @@
+feature_id: 003-observatory-home
+name: Observatory Home
+description: First user-facing surface showing project state with map-like presentation
+version: v1
+status: planning
+
+product_track: product-experience
+experience_principle: map-like-thinking, guidance-not-rigidity
+
+dependencies:
+  - 001-repo-scanner
+  - 002-artifact-model
+
+acceptance_criteria:
+  - id: AC1
+    description: Display project name and current state pulse
+    validation: UI renders project name + state summary
+  - id: AC2
+    description: Show active features as "regions" (visual distinction from table)
+    validation: Features displayed with region-like visual identity
+  - id: AC3
+    description: Show recent activity as "movement trail" (not flat list)
+    validation: Timeline preview shows as trail/sequence, not table
+  - id: AC4
+    description: Show blocked items as "friction zones" (distinct signal)
+    validation: Blocked items have distinct warning visual treatment
+  - id: AC5
+    description: Provide recommended next action as "guided path hint"
+    validation: UI shows recommended action with path-like hint
+  - id: AC6
+    description: Use dark observatory visual tone
+    validation: UI uses dark theme, not bright admin colors
+  - id: AC7
+    description: Load and render within 2 seconds
+    validation: Performance test < 2s load time
+  - id: AC8
+    description: Graceful handling of empty/partial projects
+    validation: Empty project shows welcoming state, not error
+
+anti_regression_rules:
+  NOT:
+    - Grid of summary cards with big numbers
+    - Table of issues/tasks
+    - Sidebar + main panel file browser pattern
+    - Bright admin UI colors
+    - Flat lists without sequence visualization
+  YES:
+    - Map-like region visualization
+    - Dark observatory tone
+    - Timeline as trail preview
+    - Friction zones with warning signal
+    - Path hint for next action
+
+map_metaphor_expression:
+  current_position: State summary showing where project stands
+  active_regions: Features displayed as clusters/regions
+  recent_movement: Timeline preview as trail
+  friction_zones: Blocked items with distinct warning
+  path_hint: Recommended next action
+
+implementation_guidance:
+  - Minimal web app (HTML + CSS + minimal JS)
+  - Dark theme CSS
+  - Region-like visual treatment for features (not table rows)
+  - Trail-like sequence for timeline (not list)
+  - Python API endpoint to serve artifact data
+
+estimated_scope: medium
+dogfood_validation: Display amazing-async-dev project state

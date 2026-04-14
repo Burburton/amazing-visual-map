@@ -1,0 +1,65 @@
+feature_id: 001-repo-scanner
+name: Repo Scanner
+description: Scan async-dev repository and extract canonical artifacts for downstream processing
+version: v1
+status: planning
+
+product_track: core-capability
+experience_principle: truth-before-flair
+
+dependencies: []
+
+acceptance_criteria:
+  - id: AC1
+    description: Detect async-dev project structure (projects/<id>/)
+    validation: Unit test with mock project structure
+  - id: AC2
+    description: Extract feature specs from features/<id>/feature-spec.yaml
+    validation: Parse real feature spec file
+  - id: AC3
+    description: Extract execution packs from execution-packs/*.md
+    validation: Parse real execution pack file
+  - id: AC4
+    description: Extract execution results from execution-results/*.md
+    validation: Parse real execution result file
+  - id: AC5
+    description: Extract reviews from reviews/*-review.md
+    validation: Parse real review file
+  - id: AC6
+    description: Extract runstate from runstate.md
+    validation: Parse real runstate file
+  - id: AC7
+    description: Handle missing artifacts gracefully
+    validation: Test with partial project (missing some artifacts)
+  - id: AC8
+    description: Output structured artifact list
+    validation: Verify output format matches ArtifactModel contract
+
+input_contract:
+  - repo_path: Path to local repository
+  - project_id: Optional filter for specific project
+
+output_contract:
+  - artifacts: List of discovered artifacts
+  - Each artifact contains:
+      - artifact_type
+      - artifact_id
+      - file_path
+      - parse_status
+      - extracted_metadata
+
+anti_regression_rules:
+  - NOT: Generic file listing
+  - NOT: Raw file content dumping
+  - YES: Semantic artifact type detection
+  - YES: Graceful partial project support
+
+implementation_guidance:
+  - Use pathlib for file system operations
+  - Use YAML parser for feature-spec.yaml
+  - Use markdown parser for .md files (extract YAML blocks)
+  - Implement artifact type detection by file path pattern
+  - Implement parse_status classification (success/partial/failed)
+
+estimated_scope: medium
+dogfood_validation: Scan amazing-async-dev repo itself

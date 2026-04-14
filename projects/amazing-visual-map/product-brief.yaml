@@ -1,0 +1,57 @@
+product_id: amazing-visual-map
+name: Amazing Visual Map
+description: Local-first project memory and visual map workspace for async-dev repositories
+version: v1-foundation
+
+north_star: |
+  Build a local-first map-based project memory workspace that transforms async-dev
+  repository outputs into a navigable, story-aware, interaction-rich visual system
+  for understanding and steering ongoing product evolution.
+
+product_category:
+  - local-first web application
+  - project observatory
+  - memory atlas
+  - narrative workspace
+
+core_metaphor: |
+  project → world / terrain
+  feature group → region / district
+  feature detail → site / zone
+  decision → landmark
+  issue → hazard / friction zone
+  timeline → trail / route
+  next action → recommended path
+
+what_it_is_not:
+  - generic admin dashboard
+  - file browser
+  - issue tracker clone
+  - static markdown viewer
+  - data table management console
+
+experience_principles:
+  - not a backend
+  - meaning before density
+  - spatial over flat when helpful
+  - narrative where sequence matters
+  - progressive disclosure
+  - guidance without rigidity
+  - atmosphere supports utility
+  - identity through system not decoration
+  - dogfoodability mandatory
+  - map stays trustworthy
+
+technical_constraints:
+  - local-first (no cloud dependency in V1)
+  - independent repo (not embedded in async-dev)
+  - reads async-dev artifacts via data contracts
+  - modern frontend stack capable of rich interaction
+
+autonomous_execution_policy: enabled
+escalation_conditions:
+  - core product metaphor change
+  - major architecture shift
+  - conflicting major design directions
+  - external dependency cost change
+  - user model change

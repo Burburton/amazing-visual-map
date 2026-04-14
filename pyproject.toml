@@ -1,0 +1,16 @@
+[project]
+name = "amazing-visual-map"
+version = "0.1.0"
+description = "Local-first project memory and visual map workspace"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "pyyaml>=6.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
