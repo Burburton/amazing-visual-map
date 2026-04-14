@@ -1,0 +1,33 @@
+name: terrain-map
+goal: Visualize project features as regions/terrain, not card grid
+status: planning
+
+acceptance_criteria:
+  - AC1: Display features as visual regions (distinct from table)
+  - AC2: Region color/status indicates state
+  - AC3: Cluster related features visually
+  - AC4: Show relationships as connections/paths between regions
+  - AC5: Zoom into region triggers focus view
+  - AC6: Dark observatory terrain theme
+  - AC7: NO card grid, NO table format
+  - AC8: Graceful handling of empty/sparse projects
+
+map_metaphor:
+  project: Terrain/World
+  features: Regions/Districts
+  relationships: Paths between regions
+  status: Region color/atmosphere
+
+anti_regression:
+  - NOT: Grid of feature cards
+  - NOT: Feature list/table
+  - YES: Spatial/region visualization
+  - YES: Map-like exploration
+
+implementation_notes:
+  - Add /api/terrain/{project_id} endpoint
+  - Return features with terrain metadata (position, size, relationships)
+  - CSS-based regions with spatial layout
+  - Status-based coloring (active=cyan, completed=green, blocked=red)
+  - Connection lines between related features
+  - Click region reveals focus view

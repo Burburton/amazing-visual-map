@@ -104,6 +104,61 @@ async def get_timeline(project_id: str, repo_path: str = "."):
     }
 
 
+@app.get("/api/terrain/{project_id}")
+async def get_terrain(project_id: str, repo_path: str = "."):
+    repo = Path(repo_path)
+    
+    if not repo.exists():
+        raise HTTPException(status_code=404, detail="Repository not found")
+    
+    discovered = scan_repo(repo, project_id=project_id)
+    artifacts = normalize_artifacts(discovered)
+    
+    terrain = build_terrain_data(artifacts)
+    
+    return terrain
+
+
+def build_terrain_data(artifacts) -> dict:
+    features = [a for a in artifacts if a.artifact_type == "feature-spec"]
+    
+    regions = []
+    connections = []
+    
+    row = 0
+    col = 0
+    grid_cols = 3
+    
+    for i, feature in enumerate(features):
+        position = {"row": row, "col": col}
+        
+        regions.append({
+            "id": feature.artifact_id,
+            "name": feature.title,
+            "status": feature.status or "active",
+            "position": position,
+        })
+        
+        related = [a for a in artifacts if a.feature_id == feature.artifact_id and a.artifact_type != "feature-spec"]
+        for rel in related:
+            connections.append({
+                "from": feature.artifact_id,
+                "to": rel.artifact_id,
+                "type": rel.artifact_type,
+            })
+        
+        col += 1
+        if col >= grid_cols:
+            col = 0
+            row += 1
+    
+    return {
+        "project_id": artifacts[0].project_id if artifacts else "unknown",
+        "regions": regions,
+        "connections": connections,
+    }
+
+
 def build_timeline_events(artifacts) -> list[dict]:
     from datetime import datetime, timedelta, date
     
