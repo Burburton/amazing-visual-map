@@ -773,6 +773,75 @@ def get_observatory_html() -> str:
             margin-top: 5px;
         }
         
+        .timeline-section, .related-section {
+            margin-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 15px;
+        }
+        
+        .timeline-title, .related-title {
+            font-size: 0.9rem;
+            color: var(--accent-cyan);
+            margin-bottom: 10px;
+        }
+        
+        .timeline-waypoint {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            border-left: 2px solid var(--accent-cyan);
+        }
+        
+        .waypoint-date {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .waypoint-title {
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+        
+        .waypoint-status.recent {
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+            margin-top: 4px;
+        }
+        
+        .related-feature {
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .related-feature:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+        
+        .related-name {
+            font-size: 0.85rem;
+        }
+        
+        .related-status {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        
+        .loading, .error-state, .empty-state {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            padding: 10px;
+        }
+        
+        .error-state {
+            color: #ff6b6b;
+        }
+        
         .waypoint-clickable {
             cursor: pointer;
             transition: background 0.2s ease;
@@ -990,7 +1059,7 @@ def get_observatory_html() -> str:
             
             const regionsEl = document.getElementById('regions');
             regionsEl.innerHTML = data.features.map(f => `
-                <div class="region">
+                <div class="region" onclick="showFocus('${f.id}', '${f.title || ''}')">
                     <div class="region-title">${f.title || f.id}</div>
                     <div class="region-status">${f.status || 'active'}</div>
                 </div>
@@ -1067,6 +1136,71 @@ def get_observatory_html() -> str:
                 panel.classList.remove('open');
                 panel.classList.remove('closing');
             }, 200);
+        }
+        
+        async function showFocus(featureId, featureTitle) {
+            if (!currentProjectId) {
+                alert('Please select a project first');
+                return;
+            }
+            
+            const panel = document.getElementById('details-panel');
+            const titleEl = document.getElementById('details-title');
+            const contentEl = document.getElementById('details-content');
+            
+            panel.classList.remove('closing');
+            titleEl.textContent = featureTitle || featureId;
+            contentEl.innerHTML = '<div class="loading">Loading feature details...</div>';
+            panel.classList.add('open');
+            
+            try {
+                const res = await fetch(`/api/focus/${currentProjectId}/${featureId}?repo_path=${encodeURIComponent(repoPath)}`);
+                const data = await res.json();
+                
+                const timelineHtml = data.timeline.map(t => `
+                    <div class="timeline-waypoint">
+                        <div class="waypoint-date">${t.date || 'Unknown'}</div>
+                        <div class="waypoint-title">${t.title || t.id}</div>
+                        <div class="waypoint-status ${t.is_recent ? 'recent' : ''}">${t.is_recent ? 'Recent' : ''}</div>
+                    </div>
+                `).join('');
+                
+                const relatedHtml = data.related_features.map(r => `
+                    <div class="related-feature" onclick="showFocus('${r.id}', '${r.name}')">
+                        <div class="related-name">${r.name || r.id}</div>
+                        <div class="related-status">${r.status || 'active'}</div>
+                    </div>
+                `).join('');
+                
+                contentEl.innerHTML = `
+                    <div class="details-field">
+                        <div class="details-label">ID</div>
+                        <div class="details-value">${data.feature.id}</div>
+                    </div>
+                    <div class="details-field">
+                        <div class="details-label">Status</div>
+                        <div class="details-value">${data.feature.status || 'active'}</div>
+                    </div>
+                    <div class="details-field">
+                        <div class="details-label">Goal</div>
+                        <div class="details-value">${data.feature.goal || data.feature.name}</div>
+                    </div>
+                    <div class="narrative-section">
+                        <div class="narrative-title">Story Narrative</div>
+                        <div class="narrative-text">${data.narrative || 'No narrative available.'}</div>
+                    </div>
+                    <div class="timeline-section">
+                        <div class="timeline-title">Timeline</div>
+                        ${timelineHtml || '<div class="empty-state">No timeline events</div>'}
+                    </div>
+                    <div class="related-section">
+                        <div class="related-title">Related Features</div>
+                        ${relatedHtml || '<div class="empty-state">No related features</div>'}
+                    </div>
+                `;
+            } catch (e) {
+                contentEl.innerHTML = '<div class="error-state">Failed to load feature details</div>';
+            }
         }
         
         async function performSearch() {
