@@ -1,0 +1,32 @@
+name: feature-navigation
+goal: Enable coherent cross-surface navigation with journey feel
+status: planning
+
+acceptance_criteria:
+  - AC1: Focus view shows Related Features section
+  - AC2: Click related feature navigates to its focus view
+  - AC3: Navigation breadcrumbs show current location
+  - AC4: Back button returns to previous surface
+  - AC5: Timeline waypoint click opens focus for that feature
+  - AC6: Search result click opens focus view
+  - AC7: Navigation feels like journey, not tab switching
+  - AC8: Location context preserved across navigation
+
+map_metaphor:
+  journey: Moving between territories
+  path: Navigation trail through surfaces
+  landmarks: Current location breadcrumbs
+  return: Backtracking to previous territory
+
+anti_regression:
+  - NOT: Conventional navigation breadcrumbs
+  - NOT: Tab-style navigation
+  - YES: Journey feel between surfaces
+  - YES: Location context preserved
+
+implementation_notes:
+  - Add related features section in focus response
+  - Track navigation history (JS array)
+  - Breadcrumbs UI in focus panel header
+  - Wire clicks to focus navigation
+  - Preserve project context

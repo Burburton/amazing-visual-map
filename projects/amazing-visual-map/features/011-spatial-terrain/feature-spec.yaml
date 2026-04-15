@@ -1,0 +1,32 @@
+name: spatial-terrain
+goal: Position terrain regions by relationship proximity, add visual terrain elements
+status: planning
+
+acceptance_criteria:
+  - AC1: Regions positioned by relationship proximity (related = closer)
+  - AC2: Paths/lines connect related regions
+  - AC3: Region clusters visually grouped
+  - AC4: Terrain background has subtle texture/gradient
+  - AC5: Regions have visual boundaries (not just boxes)
+  - AC6: Hover shows region connections
+  - AC7: Not a flat grid - feels like a territory map
+  - AC8: Performance acceptable (no heavy canvas)
+
+map_metaphor:
+  position: Proximity reflects relatedness
+  paths: Connections between regions (roads/trails)
+  clusters: Feature groups (districts)
+  terrain: Background texture (ground/landscape)
+
+anti_regression:
+  - NOT: Canvas-heavy visualization
+  - NOT: Flat grid without relationships
+  - YES: Relationship-based positioning
+  - YES: Visual terrain feel
+
+implementation_notes:
+  - Calculate positions from connections (simple clustering)
+  - CSS/SVG for connection paths
+  - Background gradient for terrain texture
+  - Region styling: rounded, shadowed, bordered
+  - Connection lines on hover

@@ -227,6 +227,10 @@ def build_focus_data(artifacts, feature_id: str) -> dict | None:
     
     narrative = generate_narrative(related)
     
+    related_features = [a for a in artifacts 
+                        if a.artifact_type == "feature-spec" 
+                        and a.artifact_id != feature_id]
+    
     return {
         "feature": {
             "id": feature.artifact_id,
@@ -243,6 +247,14 @@ def build_focus_data(artifacts, feature_id: str) -> dict | None:
                 "status": a.status,
             }
             for a in related
+        ],
+        "related_features": [
+            {
+                "id": a.artifact_id,
+                "name": a.title,
+                "status": a.status or "active",
+            }
+            for a in related_features[:5]
         ],
         "timeline": timeline,
         "narrative": narrative,
@@ -773,6 +785,97 @@ def get_observatory_html() -> str:
         .waypoint-recent {
             border: 1px solid var(--accent-cyan);
         }
+        
+        /* Motion Language - Map Metaphor Transitions */
+        
+        @keyframes approach {
+            from { transform: translateX(100%) scale(0.9); opacity: 0; }
+            to { transform: translateX(0) scale(1); opacity: 1; }
+        }
+        
+        @keyframes depart {
+            from { transform: translateX(0) scale(1); opacity: 1; }
+            to { transform: translateX(100%) scale(0.9); opacity: 0; }
+        }
+        
+        @keyframes waypoint-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0); }
+            50% { box-shadow: 0 0 8px 2px rgba(0, 212, 255, 0.3); }
+        }
+        
+        @keyframes discovery-reveal {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes proximity-glow {
+            0%, 100% { box-shadow: 0 0 0 rgba(0, 212, 255, 0); }
+            50% { box-shadow: 0 0 12px rgba(0, 212, 255, 0.2); }
+        }
+        
+        .details-panel {
+            animation: approach 0.3s ease-out;
+        }
+        
+        .details-panel.closing {
+            animation: depart 0.2s ease-in forwards;
+        }
+        
+        .waypoint-clickable:hover {
+            animation: waypoint-pulse 1.5s ease-in-out infinite;
+        }
+        
+        .search-result-card {
+            animation: discovery-reveal 0.3s ease-out;
+        }
+        
+        .search-result-card:nth-child(1) { animation-delay: 0s; }
+        .search-result-card:nth-child(2) { animation-delay: 0.05s; }
+        .search-result-card:nth-child(3) { animation-delay: 0.1s; }
+        .search-result-card:nth-child(4) { animation-delay: 0.15s; }
+        .search-result-card:nth-child(5) { animation-delay: 0.2s; }
+        
+        .region-item:hover {
+            animation: proximity-glow 2s ease-in-out infinite;
+            border-color: var(--accent-cyan);
+        }
+        
+        .project-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .project-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .terrain-region {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .terrain-region:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .related-section {
+            background: linear-gradient(135deg, var(--bg-region) 0%, #1a1a2f 100%);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #222233;
+            margin-top: 15px;
+        }
+        
+        .related-title {
+            font-size: 0.8rem;
+            color: var(--accent-green);
+            margin-bottom: 10px;
+        }
+        
+        .related-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
@@ -928,6 +1031,8 @@ def get_observatory_html() -> str:
             const titleEl = document.getElementById('details-title');
             const contentEl = document.getElementById('details-content');
             
+            panel.classList.remove('closing');
+            
             titleEl.textContent = title || id;
             contentEl.innerHTML = `
                 <div class="details-field">
@@ -946,6 +1051,10 @@ def get_observatory_html() -> str:
                     <div class="narrative-title">Story Narrative</div>
                     <div class="narrative-text">Click a feature region to see its execution narrative.</div>
                 </div>
+                <div class="related-section">
+                    <div class="related-title">Related Features</div>
+                    <div class="related-text">Explore connected features in this territory.</div>
+                </div>
             `;
             
             panel.classList.add('open');
@@ -953,7 +1062,11 @@ def get_observatory_html() -> str:
         
         function closeDetails() {
             const panel = document.getElementById('details-panel');
-            panel.classList.remove('open');
+            panel.classList.add('closing');
+            setTimeout(() => {
+                panel.classList.remove('open');
+                panel.classList.remove('closing');
+            }, 200);
         }
         
         async function performSearch() {

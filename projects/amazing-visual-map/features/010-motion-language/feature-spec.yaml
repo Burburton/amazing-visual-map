@@ -1,0 +1,34 @@
+name: motion-language
+goal: Add CSS transitions expressing map metaphor for approach, depart, proximity, traversal
+status: implemented
+
+acceptance_criteria:
+  - AC1: Focus panel opens with approach transition (scale/slide)
+  - AC2: Focus panel closes with depart transition
+  - AC3: Terrain regions highlight on hover with proximity effect
+  - AC4: Timeline waypoints pulse on hover
+  - AC5: Project selector buttons transition with territory switch feel
+  - AC6: Search results appear with discovery fade-in
+  - AC7: Status indicators animate state changes
+  - AC8: Transitions express map metaphor, not generic fade/slide
+
+map_metaphor:
+  approach: Coming closer to region (scale up, slide in)
+  depart: Leaving region (scale down, slide out)
+  proximity: Hovering near region (glow, border intensify)
+  traversal: Moving between surfaces (directional slide)
+  discovery: Finding something (reveal, fade-in)
+
+anti_regression:
+  - NOT: Generic fade/slide transitions
+  - NOT: Jarring or distracting animations
+  - YES: Intentional transitions expressing metaphor
+  - YES: Subtle, map-like movement feel
+
+implementation_notes:
+  - CSS transitions and keyframes (no JS animation libraries)
+  - Focus panel transform/opacity transitions
+  - Terrain region hover effects with border glow
+  - Timeline waypoint pulse keyframe
+  - Search result staggered fade-in
+  - Keep transitions subtle
