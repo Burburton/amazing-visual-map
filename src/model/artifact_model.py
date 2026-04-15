@@ -121,3 +121,34 @@ def get_project_summary(artifacts: list[ProjectArtifact]) -> list[dict[str, Any]
         })
     
     return sorted(summary, key=lambda x: x["project_id"])
+
+
+def search_artifacts(
+    artifacts: list[ProjectArtifact],
+    query: str,
+    artifact_type: str | None = None,
+) -> list[dict[str, Any]]:
+    results = []
+    
+    query_lower = query.lower()
+    
+    for artifact in artifacts:
+        if artifact_type and artifact.artifact_type != artifact_type:
+            continue
+        
+        title_match = query_lower in (artifact.title or "").lower()
+        summary_match = query_lower in (artifact.summary or "").lower()
+        id_match = query_lower in artifact.artifact_id.lower()
+        
+        if title_match or summary_match or id_match:
+            results.append({
+                "id": artifact.artifact_id,
+                "type": artifact.artifact_type,
+                "title": artifact.title,
+                "summary": artifact.summary[:100] if artifact.summary else "",
+                "status": artifact.status,
+                "date": str(artifact.date) if artifact.date else None,
+                "project_id": artifact.project_id,
+            })
+    
+    return results[:50]

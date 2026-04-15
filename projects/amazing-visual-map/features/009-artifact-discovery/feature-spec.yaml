@@ -1,0 +1,32 @@
+name: artifact-discovery
+goal: Search artifacts by keyword and filter by type with map-like results
+status: planning
+
+acceptance_criteria:
+  - AC1: Search endpoint returns matching artifacts
+  - AC2: Search by keyword in title, summary, artifact_id
+  - AC3: Filter by artifact type (feature-spec, exec-pack, etc.)
+  - AC4: Results displayed with map indicators (type, status, date)
+  - AC5: Search results count shown
+  - AC6: Dark theme integration
+  - AC7: NO flat list without visual context
+  - AC8: Fast search (under 1 second)
+
+map_metaphor:
+  search: Scanning terrain for locations
+  results: Points of interest matching query
+  filter: Looking for specific landmark types
+
+anti_regression:
+  - NOT: Generic search box
+  - NOT: Flat results list
+  - YES: Visual search results
+  - YES: Type/status indicators
+
+implementation_notes:
+  - Add /api/search?q=keyword&type=artifact_type endpoint
+  - Add search_artifacts() function in artifact_model
+  - Search in title, summary, artifact_id
+  - Return top 50 results with relevance indicators
+  - Add search input in observatory header
+  - Results as cards with type icon, status color

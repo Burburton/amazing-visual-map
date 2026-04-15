@@ -14,6 +14,7 @@ from src.model.artifact_model import (
     normalize_artifacts,
     calculate_state_summary,
     get_project_summary,
+    search_artifacts,
 )
 
 
@@ -156,6 +157,29 @@ def build_terrain_data(artifacts) -> dict:
         "project_id": artifacts[0].project_id if artifacts else "unknown",
         "regions": regions,
         "connections": connections,
+    }
+
+
+@app.get("/api/search")
+async def search(q: str = "", type: str | None = None, repo_path: str = "."):
+    repo = Path(repo_path)
+    
+    if not repo.exists():
+        raise HTTPException(status_code=404, detail="Repository not found")
+    
+    if not q:
+        return {"results": [], "total": 0, "query": ""}
+    
+    discovered = scan_repo(repo)
+    artifacts = normalize_artifacts(discovered)
+    
+    results = search_artifacts(artifacts, query=q, artifact_type=type)
+    
+    return {
+        "results": results,
+        "total": len(results),
+        "query": q,
+        "type_filter": type,
     }
 
 
@@ -440,6 +464,86 @@ def get_observatory_html() -> str:
             background: rgba(0, 212, 255, 0.1);
         }
         
+        .search-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .search-input {
+            background: var(--bg-region);
+            border: 1px solid #222233;
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 4px;
+            width: 300px;
+            font-size: 0.9rem;
+        }
+        
+        .search-input:focus {
+            border-color: var(--accent-cyan);
+            outline: none;
+        }
+        
+        .search-btn {
+            background: var(--accent-cyan);
+            border: none;
+            color: var(--bg-dark);
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .search-results {
+            max-width: 800px;
+            margin: 20px auto;
+        }
+        
+        .search-result-card {
+            background: var(--bg-region);
+            border: 1px solid #222233;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .search-result-card:hover {
+            border-color: var(--accent-cyan);
+        }
+        
+        .search-result-type {
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+            margin-bottom: 5px;
+        }
+        
+        .search-result-title {
+            font-size: 1rem;
+            color: var(--text-primary);
+        }
+        
+        .search-result-summary {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        .search-result-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            margin-top: 5px;
+        }
+        
+        .search-result-status.active { background: rgba(0, 212, 255, 0.2); color: var(--accent-cyan); }
+        .search-result-status.completed { background: rgba(0, 255, 136, 0.2); color: var(--accent-green); }
+        .search-result-status.blocked { background: rgba(255, 68, 68, 0.2); color: var(--accent-red); }
+        
         .project-count {
             font-size: 0.8rem;
             color: var(--text-secondary);
@@ -677,6 +781,11 @@ def get_observatory_html() -> str:
             <h1>Project Observatory</h1>
             <div class="project-selector" id="project-selector"></div>
             <div class="project-count" id="project-count">Loading projects...</div>
+            <div class="search-container">
+                <input type="text" class="search-input" id="search-input" placeholder="Search artifacts...">
+                <button class="search-btn" onclick="performSearch()">Search</button>
+            </div>
+            <div class="search-results" id="search-results"></div>
             <div class="pulse">
                 <div class="pulse-item">
                     <div class="pulse-value pulse-active" id="active-count">-</div>
@@ -846,6 +955,39 @@ def get_observatory_html() -> str:
             const panel = document.getElementById('details-panel');
             panel.classList.remove('open');
         }
+        
+        async function performSearch() {
+            const query = document.getElementById('search-input').value;
+            if (!query) {
+                document.getElementById('search-results').innerHTML = '';
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&repo_path=${encodeURIComponent(repoPath)}`);
+                const data = await res.json();
+                
+                const resultsEl = document.getElementById('search-results');
+                if (data.results.length === 0) {
+                    resultsEl.innerHTML = '<div class="empty-state"><p>No results found for "' + query + '"</p></div>';
+                } else {
+                    resultsEl.innerHTML = data.results.map(r => `
+                        <div class="search-result-card" onclick="showDetails('${r.id}', '${r.type}', '${r.date || ''}', '${r.title || ''}')">
+                            <div class="search-result-type">${r.type}</div>
+                            <div class="search-result-title">${r.title || r.id}</div>
+                            <div class="search-result-summary">${r.summary || ''}</div>
+                            ${r.status ? `<div class="search-result-status ${r.status}">${r.status}</div>` : ''}
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {
+                document.getElementById('search-results').innerHTML = '<div class="empty-state"><p>Search failed</p></div>';
+            }
+        }
+        
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') performSearch();
+        });
         
         loadProjects();
     </script>
