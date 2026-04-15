@@ -201,6 +201,8 @@ def build_focus_data(artifacts, feature_id: str) -> dict | None:
     
     timeline = build_timeline_events(related)
     
+    narrative = generate_narrative(related)
+    
     return {
         "feature": {
             "id": feature.artifact_id,
@@ -219,7 +221,69 @@ def build_focus_data(artifacts, feature_id: str) -> dict | None:
             for a in related
         ],
         "timeline": timeline,
+        "narrative": narrative,
     }
+
+
+def generate_narrative(artifacts) -> str:
+    if not artifacts:
+        return "No execution history recorded for this feature."
+    
+    def get_date(a):
+        if hasattr(a, 'date'):
+            return a.date
+        return a.get('date')
+    
+    def get_status(a):
+        if hasattr(a, 'status'):
+            return a.status or ""
+        return a.get('status', '')
+    
+    def get_id(a):
+        if hasattr(a, 'artifact_id'):
+            return a.artifact_id
+        return a.get('id', 'unknown')
+    
+    dated_artifacts = [a for a in artifacts if get_date(a)]
+    sorted_artifacts = sorted(dated_artifacts, key=lambda x: str(get_date(x) or ""))
+    
+    if not sorted_artifacts:
+        return "Execution history exists but dates are not recorded."
+    
+    first = sorted_artifacts[0]
+    last = sorted_artifacts[-1]
+    
+    milestones = []
+    for a in sorted_artifacts:
+        status = get_status(a)
+        date_str = str(get_date(a))
+        if status in ("completed", "success"):
+            milestones.append(f"Completed execution on {date_str}")
+        elif status == "blocked":
+            milestones.append(f"Blocked on {date_str}")
+        elif status == "planning":
+            milestones.append(f"Planning phase on {date_str}")
+    
+    total_runs = len(sorted_artifacts)
+    first_date = str(get_date(first))
+    first_id = get_id(first)
+    first_status = get_status(first)
+    last_status = get_status(last)
+    last_date = str(get_date(last))
+    
+    beginning = f"This feature began with {first_id} on {first_date}."
+    
+    if total_runs > 1:
+        middle = f"Through {total_runs} iterations, the feature progressed from {first_status or 'unknown'} to {last_status or 'active'}."
+    else:
+        middle = "Currently in initial development phase."
+    
+    if milestones:
+        current = f"Key milestones: {', '.join(milestones[:3])}."
+    else:
+        current = f"Current state: {last_status or 'in progress'} as of {last_date}."
+    
+    return f"{beginning} {middle} {current}"
 
 
 def build_timeline_events(artifacts) -> list[dict]:
@@ -518,6 +582,26 @@ def get_observatory_html() -> str:
             margin-bottom: 20px;
         }
         
+        .narrative-section {
+            background: linear-gradient(135deg, var(--bg-region) 0%, #1a1a2f 100%);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #222233;
+            margin-top: 15px;
+        }
+        
+        .narrative-title {
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 10px;
+        }
+        
+        .narrative-text {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+        
         .details-panel {
             position: fixed;
             right: -400px;
@@ -748,6 +832,10 @@ def get_observatory_html() -> str:
                 <div class="details-field">
                     <div class="details-label">Date</div>
                     <div class="details-value">${date || 'Unknown'}</div>
+                </div>
+                <div class="narrative-section">
+                    <div class="narrative-title">Story Narrative</div>
+                    <div class="narrative-text">Click a feature region to see its execution narrative.</div>
                 </div>
             `;
             

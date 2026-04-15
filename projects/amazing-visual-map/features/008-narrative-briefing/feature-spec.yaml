@@ -1,0 +1,30 @@
+name: narrative-briefing
+goal: Summarize execution history as progression story with milestones
+status: planning
+
+acceptance_criteria:
+  - AC1: Generate narrative from exec results sequence
+  - AC2: Identify key milestones (completed features, blocked resolutions)
+  - AC3: Show progression narrative (started->progress->completed/blocked)
+  - AC4: Briefing appears in focus view or as separate panel
+  - AC5: Dark theme integration
+  - AC6: NO flat chronological list
+  - AC7: Story structure (beginning->middle->current state)
+
+map_metaphor:
+  exec_history: Journey/travel story
+  milestones: Significant waypoints
+  narrative: Traveler's log/journal entry
+
+anti_regression:
+  - NOT: Flat list of exec results
+  - NOT: Log output without structure
+  - YES: Story narrative format
+  - YES: Milestone highlighting
+
+implementation_notes:
+  - Add generate_narrative() function to build story from exec sequence
+  - Include narrative in focus API response
+  - Identify milestones: first run, completions, blocked resolutions
+  - Structure: beginning (started), middle (progress), current (state)
+  - Display in focus panel as narrative section
