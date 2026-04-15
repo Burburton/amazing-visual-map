@@ -1,0 +1,31 @@
+name: focus-view
+goal: Click terrain region to zoom into feature detail with full content
+status: planning
+
+acceptance_criteria:
+  - AC1: Click region -> focus panel expands
+  - AC2: Show full feature spec content (not just id/type/date)
+  - AC3: Show feature-related artifacts (exec packs, exec results)
+  - AC4: Feature-level timeline in focus view
+  - AC5: Back button to return to terrain
+  - AC6: Dark theme integration
+  - AC7: NO form-based editor layout
+  - AC8: Maintain map metaphor (zoom into region)
+
+map_metaphor:
+  terrain_region: Zoom into district/neighborhood
+  focus_panel: Street-level view
+  related_artifacts: Buildings/locations in focus area
+
+anti_regression:
+  - NOT: Standard CRUD detail view
+  - NOT: Form-based artifact editor
+  - YES: Zoom-style transition
+  - YES: Full content display in observatory style
+
+implementation_notes:
+  - Add /api/focus/{project_id}/{feature_id} endpoint
+  - Return feature spec + related artifacts + timeline
+  - Extend details panel to full focus view
+  - CSS slide-in transition for zoom effect
+  - Back button returns to terrain overview

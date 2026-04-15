@@ -159,6 +159,69 @@ def build_terrain_data(artifacts) -> dict:
     }
 
 
+@app.get("/api/focus/{project_id}/{feature_id}")
+async def get_focus(project_id: str, feature_id: str, repo_path: str = "."):
+    repo = Path(repo_path)
+    
+    if not repo.exists():
+        raise HTTPException(status_code=404, detail="Repository not found")
+    
+    discovered = scan_repo(repo, project_id=project_id)
+    artifacts = normalize_artifacts(discovered)
+    
+    focus = build_focus_data(artifacts, feature_id)
+    
+    if not focus:
+        raise HTTPException(status_code=404, detail="Feature not found")
+    
+    return focus
+
+
+def build_focus_data(artifacts, feature_id: str) -> dict | None:
+    features = [a for a in artifacts if a.artifact_type == "feature-spec" and a.artifact_id == feature_id]
+    
+    if not features:
+        return None
+    
+    feature = features[0]
+    
+    # Extract feature number (e.g., "001-init" -> 1, matching YAML integer parsing)
+    feature_num_str = feature_id.split("-")[0] if "-" in feature_id else feature_id
+    try:
+        feature_num_int = int(feature_num_str)
+    except ValueError:
+        feature_num_int = None
+    
+    # Match by feature_id field (integer from YAML) or by artifact_id prefix
+    related = [a for a in artifacts 
+               if a.artifact_type != "feature-spec" 
+               and (a.feature_id == feature_num_int or 
+                    str(a.feature_id) == feature_num_str or
+                    a.feature_id == feature_id)]
+    
+    timeline = build_timeline_events(related)
+    
+    return {
+        "feature": {
+            "id": feature.artifact_id,
+            "name": feature.title,
+            "status": feature.status or "active",
+            "goal": feature.summary,
+            "metadata": feature.metadata,
+        },
+        "related_artifacts": [
+            {
+                "id": a.artifact_id,
+                "type": a.artifact_type,
+                "date": str(a.date) if a.date else None,
+                "status": a.status,
+            }
+            for a in related
+        ],
+        "timeline": timeline,
+    }
+
+
 def build_timeline_events(artifacts) -> list[dict]:
     from datetime import datetime, timedelta, date
     
