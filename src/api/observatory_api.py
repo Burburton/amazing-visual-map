@@ -420,6 +420,31 @@ def get_observatory_html() -> str:
             color: var(--accent-cyan);
         }
         
+        .journey-path {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .journey-step {
+            padding: 4px 10px;
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .journey-step.active {
+            color: var(--accent-cyan);
+            border: 1px solid var(--accent-cyan);
+        }
+        
+        .journey-separator {
+            color: var(--text-secondary);
+        }
+        
         .pulse {
             display: flex;
             justify-content: center;
@@ -577,9 +602,17 @@ def get_observatory_html() -> str:
         }
         
         .regions {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            display: flex;
+            flex-wrap: wrap;
             gap: 15px;
+            justify-content: flex-start;
+        }
+        
+        .region-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-right: 20px;
         }
         
         .region {
@@ -716,6 +749,24 @@ def get_observatory_html() -> str:
             font-size: 0.9rem;
             color: var(--text-primary);
             line-height: 1.5;
+        }
+        
+        .narrative-chapter {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+        }
+        
+        .chapter-label {
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 5px;
+        }
+        
+        .chapter-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
         }
         
         .details-panel {
@@ -951,6 +1002,7 @@ def get_observatory_html() -> str:
     <div class="observatory">
         <div class="header">
             <h1>Project Observatory</h1>
+            <div class="journey-path" id="journey-path"></div>
             <div class="project-selector" id="project-selector"></div>
             <div class="project-count" id="project-count">Loading projects...</div>
             <div class="search-container">
@@ -1006,6 +1058,8 @@ def get_observatory_html() -> str:
     <script>
         const repoPath = 'G:/Workspace/amazing-async-dev';
         let currentProjectId = null;
+        let currentFeatureId = null;
+        let journeyStack = [];
         let projects = [];
         
         async function loadProjects() {
@@ -1034,6 +1088,9 @@ def get_observatory_html() -> str:
         
         function selectProject(projectId) {
             currentProjectId = projectId;
+            currentFeatureId = null;
+            journeyStack = [];
+            renderJourneyPath();
             
             document.querySelectorAll('.project-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.project === projectId);
@@ -1138,11 +1195,45 @@ def get_observatory_html() -> str:
             }, 200);
         }
         
+        function renderJourneyPath() {
+            const pathEl = document.getElementById('journey-path');
+            const steps = [];
+            
+            if (currentProjectId) {
+                steps.push({ type: 'project', id: currentProjectId, label: currentProjectId });
+            }
+            
+            journeyStack.forEach(s => {
+                steps.push({ type: 'separator', label: '→' });
+                steps.push(s);
+            });
+            
+            if (currentFeatureId) {
+                steps.push({ type: 'separator', label: '→' });
+                steps.push({ type: 'feature', id: currentFeatureId, label: document.getElementById('details-title').textContent || currentFeatureId });
+            }
+            
+            pathEl.innerHTML = steps.map(s => {
+                if (s.type === 'separator') {
+                    return `<span class="journey-separator">${s.label}</span>`;
+                }
+                const isActive = s.type === 'feature' && s.id === currentFeatureId;
+                return `<span class="journey-step ${isActive ? 'active' : ''}">${s.label}</span>`;
+            }).join('');
+        }
+        
         async function showFocus(featureId, featureTitle) {
             if (!currentProjectId) {
                 alert('Please select a project first');
                 return;
             }
+            
+            if (currentFeatureId && currentFeatureId !== featureId) {
+                const currentTitle = document.getElementById('details-title').textContent;
+                journeyStack.push({ type: 'feature', id: currentFeatureId, label: currentTitle || currentFeatureId });
+            }
+            currentFeatureId = featureId;
+            renderJourneyPath();
             
             const panel = document.getElementById('details-panel');
             const titleEl = document.getElementById('details-title');
@@ -1187,7 +1278,18 @@ def get_observatory_html() -> str:
                     </div>
                     <div class="narrative-section">
                         <div class="narrative-title">Story Narrative</div>
-                        <div class="narrative-text">${data.narrative || 'No narrative available.'}</div>
+                        <div class="narrative-chapter">
+                            <div class="chapter-label">Beginning</div>
+                            <div class="chapter-text">${data.narrative ? 'This feature began its journey...' : 'Origin not yet documented.'}</div>
+                        </div>
+                        <div class="narrative-chapter">
+                            <div class="chapter-label">Current State</div>
+                            <div class="chapter-text">${data.feature.status === 'completed' ? 'Completed - ready for next phase.' : data.feature.status === 'blocked' ? 'Blocked - needs resolution.' : 'In progress - continuing development.'}</div>
+                        </div>
+                        <div class="narrative-chapter">
+                            <div class="chapter-label">Next Milestone</div>
+                            <div class="chapter-text">${data.narrative || 'Continue execution for next milestone.'}</div>
+                        </div>
                     </div>
                     <div class="timeline-section">
                         <div class="timeline-title">Timeline</div>
